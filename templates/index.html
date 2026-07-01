@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset=""utf-8>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{title}}</title>
+    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+</head>
+<body>
+    <h1>{{title}}</h1>
+    <p>{{message}}</p>
+
+    <section>
+        <h2>Coins</h2>
+        <div
+            hx-get="/coins"
+            hx-trigger="load"
+            hx-target="#coin-list"
+            hx-swap="innerHTML">
+            <p>Loading coins...</p>
+        </div>
+        <div id="coin-list"></div>
+    </section>
+</body>
+</html>
