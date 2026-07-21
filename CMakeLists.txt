@@ -13,15 +13,24 @@ find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PQXX REQUIRED IMPORTED_TARGET libpqxx)
 
+add_library(database_lib STATIC
+    src/database/db_config.cpp
+)
+
+target_include_directories(database_lib PUBLIC src)
+target_link_libraries(database_lib PRIVATE
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    ZLIB::ZLIB
+    PkgConfig::PQXX
+)
+    
 add_executable(coin_app
     src/main.cpp
 )
 target_link_libraries(coin_app PRIVATE 
     Crow::Crow
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    ZLIB::ZLIB
-    PkgConfig::PQXX
+    database_lib
 )
 
 target_compile_features(coin_app PRIVATE cxx_std_26)
@@ -31,3 +40,6 @@ target_compile_options(coin_app PRIVATE
     -Wextra
     -Wpedantic
 )
+
+enable_testing()
+add_subdirectory(tests)
