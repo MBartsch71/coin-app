@@ -10,18 +10,26 @@ TEST_CASE("Database connection string formatting", "[db_config]") {
     unsetenv("COINAPP_DB_PASSWORD");
 
     SECTION("Defaults are used when environment is empty") {
-        std::string conn = database::get_connection_string();
-        REQUIRE(conn == "host=127.0.0.1 port=5432 dbname=coin_catalog user=coinapp password=coinappdev");
+        auto config = database::EnvironmentLoader::load();
+        REQUIRE(config.host == "127.0.0.1");
+        REQUIRE(config.port == "5432");
+        REQUIRE(config.dbname == "coin_catalog");
+        REQUIRE(config.user == "coinapp");
+        REQUIRE(config.password == "coinappdev");
     }
 
     SECTION("Environment variables override defaults correctly") {
         setenv("COINAPP_DB_PORT", "5433", 1);
         setenv("COINAPP_DB_USER", "postgres", 1);
         
-        std::string conn = database::get_connection_string();
-        REQUIRE(conn == "host=127.0.0.1 port=5433 dbname=coin_catalog user=postgres password=coinappdev");
+        auto config = database::EnvironmentLoader::load();
+        REQUIRE(config.port == "5433");
+        REQUIRE(config.user == "postgres");
+        REQUIRE(config.host == "127.0.0.1");
+        REQUIRE(config.dbname == "coin_catalog");
 
         unsetenv("COINAPP_DB_PORT");
         unsetenv("COINAPP_DB_USER");
     }
+
 }

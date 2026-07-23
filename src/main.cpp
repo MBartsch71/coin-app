@@ -4,20 +4,7 @@
 #include <pqxx/pqxx>
 #include <cstdlib>
 #include <string>
-
-std::string connection_string() {
-    const char* host = std::getenv("COINAPP_DB_HOST");
-    const char* port = std::getenv("COINAPP_DB_PORT");
-    const char* db   = std::getenv("COINAPP_DB_NAME");
-    const char* user = std::getenv("COINAPP_DB_USER");
-    const char* pass = std::getenv("COINAPP_DB_PASSWORD");
-
-    return "host=" + std::string(host ? host : "127.0.0.1") +
-        " port=" + std::string(port ? port : "5432") +
-        " dbname=" + std::string(db ? db : "coin_catalog") +
-        " user=" + std::string(user ? user : "coinapp") +
-        " password= " + std::string(pass ? pass : "coinappdev");
-}
+#include "database/db_config.hpp"
 
 int main() {
     crow::SimpleApp app;
@@ -37,7 +24,9 @@ int main() {
 
     CROW_ROUTE(app, "/coins")([] {
         try {
-            pqxx::connection conn(connection_string());
+            auto config = database::EnvironmentLoader::load();
+            pqxx::connection conn{std::string(config)};
+
             pqxx::work tx(conn);
 
             auto result = tx.exec(
@@ -59,7 +48,7 @@ int main() {
 
                 coins.push_back(std::move(item));
             }
-
+            tx.commit();
             ctx["coins"] = std::move(coins);
 
             auto partial = crow::mustache::load("partials/coin_list.html");
