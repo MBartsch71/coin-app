@@ -32,4 +32,22 @@ TEST_CASE("Database connection string formatting", "[db_config]") {
         unsetenv("COINAPP_DB_USER");
     }
 
+    SECTION("Connection string uses default values") {
+        auto config = database::EnvironmentLoader::load();
+        std::string conn_str = static_cast<std::string>(config);
+        REQUIRE(conn_str == "host=127.0.0.1 port=5432 dbname=coin_catalog user=coinapp password=coinappdev");
+    }
+
+    SECTION("Connection string refelcts environment ovverrides") {
+        setenv("COINAPP_DB_HOST", "db.example.com",1);
+        setenv("COINAPP_DB_PORT", "6533", 1);
+
+        auto config = database::EnvironmentLoader::load();
+        std::string conn_str = static_cast<std::string>(config);
+        REQUIRE(conn_str == "host=db.example.com port=6533 dbname=coin_catalog user=coinapp password=coinappdev");
+
+        unsetenv("COINAPP_DB_HOST");
+        unsetenv("COINAPP_DB_PORT");    
+    }
+
 }
