@@ -24,13 +24,24 @@ target_link_libraries(database_lib PRIVATE
     ZLIB::ZLIB
     PkgConfig::PQXX
 )
-    
+
+add_library(coin_lib STATIC
+    src/coins/coin_repository.cpp
+)
+
+target_include_directories(coin_lib PUBLIC src)
+target_link_libraries(coin_lib PRIVATE
+    PkgConfig::PQXX
+)
+
 add_executable(coin_app
     src/main.cpp
 )
+
 target_link_libraries(coin_app PRIVATE 
     Crow::Crow
     database_lib
+    coin_lib
 )
 
 target_compile_features(coin_app PRIVATE cxx_std_26)
