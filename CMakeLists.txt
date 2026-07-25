@@ -38,6 +38,10 @@ add_executable(coin_app
     src/main.cpp
 )
 
+target_compile_definitions(coin_app PRIVATE
+    COINAPP_TEMPLATE_DIR="${CMAKE_SOURCE_DIR}/templates"
+)
+
 target_link_libraries(coin_app PRIVATE 
     Crow::Crow
     database_lib

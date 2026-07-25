@@ -1,14 +1,14 @@
 #define CROW_MAIN
 #include <crow.h>
 #include <crow/mustache.h>
-#include <pqxx/pqxx>
-#include <cstdlib>
-#include <string>
 #include "database/db_config.hpp"
+#include "coins/coin_repository.hpp"
+#include <string>
 
 int main() {
     crow::SimpleApp app;
 
+    crow::mustache::set_global_base(COINAPP_TEMPLATE_DIR);
     CROW_ROUTE(app, "/health")([] {
         return "OK";
     });
@@ -23,39 +23,35 @@ int main() {
     });
 
     CROW_ROUTE(app, "/coins")([] {
-        try {
-            auto config = database::EnvironmentLoader::load();
-            pqxx::connection conn{std::string(config)};
+        auto config = database::EnvironmentLoader::load();
+        coins::CoinRepository repo{static_cast<std::string>(config)};
 
-            pqxx::work tx(conn);
+        auto result = repo.list_all();
 
-            auto result = tx.exec(
-                "SELECT title, country, year, denomination, metak "
-                "FROM coins "
-                "ORDER BY id desc"
-            );
-
-            crow::mustache::context ctx;
-            auto coins = crow::json::wvalue::list();
-
-            for (const auto& row : result) {
-                crow::json::wvalue item;
-                item["title"] = row["title"].is_null() ? "" : row["title"].c_str();
-                item["country"] = row["country"].is_null() ? "" : row["country"].c_str();
-                item["year"] = row["year"].is_null() ? "" : row["year"].c_str();
-                item["denomination"] = row["denomination"].is_null() ? "" : row["denomination"].c_str();
-                item["metak"] = row["metak"].is_null() ? "" : row["metak"].c_str();
-
-                coins.push_back(std::move(item));
+        if (!result) {
+            switch (result.error()) {
+                case coins::CoinRepositoryError::ConnectionFailed:
+                    return crow::response(500, "Database anavailable");
+                case coins::CoinRepositoryError::QueryFailed:
+                    return crow::response(500, "COuld not load coins");
             }
-            tx.commit();
-            ctx["coins"] = std::move(coins);
-
-            auto partial = crow::mustache::load("partials/coin_list.html");
-            return crow::response{partial.render(ctx)};
-        } catch (const std::exception& ex) {
-            return crow::response(500, std::string("Database error: ") + ex.what()); 
         }
+
+        auto coin_list = crow::json::wvalue::list();
+        for (const auto& coin : result.value()) {
+            crow::json::wvalue item;
+            item["title"] = coin.title;
+            item["country"] = coin.country;
+            item["year"] = coin.year;
+            item["metal"] = coin.metal;
+            coin_list.push_back(std::move(item));
+        }
+
+        crow::mustache::context ctx;
+        ctx["coins"] = std::move(coin_list);
+
+        auto partial = crow::mustache::load("partials/coin_list.html");
+        return crow::response{partial.render(ctx)};
     });
 
     app.port(9000).multithreaded().run();
