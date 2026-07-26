@@ -14,4 +14,15 @@ target_link_libraries(unit_tests PRIVATE
     PkgConfig::PQXX
 )
 
-add_test(NAME unit_tests COMMAND unit_tests)
+# Fast unit tests - no database needed
+# "~[integration]" runs everything NOT taggeg [integration],
+# so future unit tests are picked up automatically
+add_test(NAME unit COMMAND unit_tests "~[integration]")
+
+# Integration tests - real database, but the DISPOSABLE (test) one.
+# CTest injects the test environment itself; no manual sourcing
+add_test(NAME integration 
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_with_env.sh
+            ${CMAKE_SOURCE_DIR}/config/.env.test
+            $<TARGET_FILE:unit_tests> "[integration]"
+)
