@@ -13,12 +13,12 @@ find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PQXX REQUIRED IMPORTED_TARGET libpqxx)
 
-add_library(database_lib STATIC
-    src/database/db_config.cpp
+add_library(config_lib STATIC
+    src/config/app_config.cpp
 )
 
-target_include_directories(database_lib PUBLIC src)
-target_link_libraries(database_lib PRIVATE
+target_include_directories(config_lib PUBLIC src)
+target_link_libraries(config_lib PRIVATE
     OpenSSL::SSL
     OpenSSL::Crypto
     ZLIB::ZLIB
@@ -44,7 +44,7 @@ target_compile_definitions(coin_app PRIVATE
 
 target_link_libraries(coin_app PRIVATE 
     Crow::Crow
-    database_lib
+    config_lib
     coin_lib
 )
 

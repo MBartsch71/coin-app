@@ -1,7 +1,7 @@
 #define CROW_MAIN
 #include <crow.h>
 #include <crow/mustache.h>
-#include "database/db_config.hpp"
+#include "config/app_config.hpp"
 #include "coins/coin_repository.hpp"
 #include <cstdint>
 #include <string>
@@ -11,7 +11,7 @@ int main() {
 
     crow::mustache::set_global_base(COINAPP_TEMPLATE_DIR);
 
-    auto config = database::EnvironmentLoader::load();
+    auto config = config::EnvironmentLoader::load();
 
     CROW_ROUTE(app, "/health")([] {
         return "OK";
@@ -27,7 +27,7 @@ int main() {
     });
 
     CROW_ROUTE(app, "/coins")([] {
-        auto config = database::EnvironmentLoader::load();
+        auto config = config::EnvironmentLoader::load();
         coins::CoinRepository repo{static_cast<std::string>(config)};
 
         auto result = repo.list_all();

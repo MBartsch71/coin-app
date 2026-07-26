@@ -9,7 +9,7 @@ add_executable(unit_tests
 
 target_link_libraries(unit_tests PRIVATE
     Catch2::Catch2WithMain
-    database_lib
+    config_lib
     coin_lib
     PkgConfig::PQXX
 )

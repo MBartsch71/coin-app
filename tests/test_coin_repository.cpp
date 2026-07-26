@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include "database/db_config.hpp"
+#include "config/app_config.hpp"
 #include "coins/coin_repository.hpp"
 #include <pqxx/pqxx>
 #include <algorithm>
@@ -32,7 +32,7 @@ namespace {
 
 TEST_CASE("CoinRepository lists coins from database" ,
             "[coin_repository][integration]") {
-                auto config = database::EnvironmentLoader::load();
+                auto config = config::EnvironmentLoader::load();
                 std::string conn_str = static_cast<std::string>(config);
                 pqxx::connection conn{conn_str};
 

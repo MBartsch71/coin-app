@@ -1,9 +1,9 @@
-#include "database/db_config.hpp"
+#include "config/app_config.hpp"
 #include <cstdlib>
 #include <string>
 
-namespace database {
-    DatabaseConfigValues::operator std::string() const {
+namespace config {
+    AppConfigValues::operator std::string() const {
         return  "host=" + host 
               + " port=" + port 
               + " dbname=" + dbname 
@@ -11,7 +11,7 @@ namespace database {
               + " password=" + password;
     }
 
-    DatabaseConfigValues EnvironmentLoader::load() {
+    AppConfigValues EnvironmentLoader::load() {
         auto resolve = [](const char* name, const char* def) -> std::string{
             if (const char* val = std::getenv(name)) {
                 return val;
@@ -30,7 +30,7 @@ namespace database {
             return def;
         };
 
-        DatabaseConfigValues config;
+        AppConfigValues config;
         config.host     = resolve("COINAPP_DB_HOST", "127.0.0.1");
         config.port     = resolve("COINAPP_DB_PORT", "5432");
         config.dbname   = resolve("COINAPP_DB_NAME", "coin_catalog_dev");

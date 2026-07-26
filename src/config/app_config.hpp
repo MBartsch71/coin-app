@@ -1,10 +1,10 @@
-#ifndef COINAPP_DATABASE_CONFIG_HPP
-#define COINAPP_DATABASE_CONFIG_HPP
+#ifndef COINAPP_APP_CONFIG_HPP
+#define COINAPP_APP_CONFIG_HPP
 #include <string>
 
-namespace database {
+namespace config {
     
-    struct DatabaseConfigValues {
+    struct AppConfigValues {
         std::string host        = "127.0.0.1";
         std::string port        = "5432";
         std::string dbname      = "coin_catalog_dev";
@@ -17,8 +17,8 @@ namespace database {
 
     class EnvironmentLoader {
         public:
-            static DatabaseConfigValues load();
+            static AppConfigValues load();
     };
 }
 
-#endif // COINAPP_DATABASE_CONFIG_HPP
+#endif // COINAPP_APP_CONFIG_HPP
