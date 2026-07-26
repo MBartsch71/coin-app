@@ -10,6 +10,7 @@ namespace database {
         std::string dbname      = "coin_catalog_dev";
         std::string user        = "coinapp";
         std::string password    = "coinappdev";
+        int web_port            = 9000;
 
         explicit operator std::string() const;
     };

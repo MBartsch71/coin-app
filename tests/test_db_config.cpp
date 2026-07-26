@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "database/db_config.hpp" 
 #include <cstdlib>
+#include <string>
 
 TEST_CASE("Database connection string formatting", "[db_config]") {
     unsetenv("COINAPP_DB_HOST");
@@ -8,6 +9,7 @@ TEST_CASE("Database connection string formatting", "[db_config]") {
     unsetenv("COINAPP_DB_NAME");
     unsetenv("COINAPP_DB_USER");
     unsetenv("COINAPP_DB_PASSWORD");
+    unsetenv("COINAPP_PORT");
 
     SECTION("Defaults are used when environment is empty") {
         auto config = database::EnvironmentLoader::load();
@@ -48,6 +50,20 @@ TEST_CASE("Database connection string formatting", "[db_config]") {
 
         unsetenv("COINAPP_DB_HOST");
         unsetenv("COINAPP_DB_PORT");    
+    }
+
+    SECTION("Web port defaults to 9000") {
+        auto config = database::EnvironmentLoader::load();
+        REQUIRE(config.web_port== 9000);
+    }
+
+    SECTION("Web port can be overridden by environment") {
+        setenv("COINAPP_PORT", "9001", 1);
+
+        auto config = database::EnvironmentLoader::load();
+        REQUIRE(config.web_port == 9001);
+
+        unsetenv("COINAPP_PORT");
     }
 
 }

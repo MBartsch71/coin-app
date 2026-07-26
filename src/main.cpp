@@ -3,12 +3,16 @@
 #include <crow/mustache.h>
 #include "database/db_config.hpp"
 #include "coins/coin_repository.hpp"
+#include <cstdint>
 #include <string>
 
 int main() {
     crow::SimpleApp app;
 
     crow::mustache::set_global_base(COINAPP_TEMPLATE_DIR);
+
+    auto config = database::EnvironmentLoader::load();
+
     CROW_ROUTE(app, "/health")([] {
         return "OK";
     });
@@ -54,6 +58,6 @@ int main() {
         return crow::response{partial.render(ctx)};
     });
 
-    app.port(9000).multithreaded().run();
+    app.port(static_cast<std::uint16_t>(config.web_port)).multithreaded().run();
 }
 
