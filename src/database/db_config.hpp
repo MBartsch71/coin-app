@@ -7,7 +7,7 @@ namespace database {
     struct DatabaseConfigValues {
         std::string host        = "127.0.0.1";
         std::string port        = "5432";
-        std::string dbname      = "coin_catalog";
+        std::string dbname      = "coin_catalog_dev";
         std::string user        = "coinapp";
         std::string password    = "coinappdev";
 

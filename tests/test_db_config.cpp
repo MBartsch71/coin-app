@@ -13,7 +13,7 @@ TEST_CASE("Database connection string formatting", "[db_config]") {
         auto config = database::EnvironmentLoader::load();
         REQUIRE(config.host == "127.0.0.1");
         REQUIRE(config.port == "5432");
-        REQUIRE(config.dbname == "coin_catalog");
+        REQUIRE(config.dbname == "coin_catalog_dev");
         REQUIRE(config.user == "coinapp");
         REQUIRE(config.password == "coinappdev");
     }
@@ -26,7 +26,7 @@ TEST_CASE("Database connection string formatting", "[db_config]") {
         REQUIRE(config.port == "5433");
         REQUIRE(config.user == "postgres");
         REQUIRE(config.host == "127.0.0.1");
-        REQUIRE(config.dbname == "coin_catalog");
+        REQUIRE(config.dbname == "coin_catalog_dev");
 
         unsetenv("COINAPP_DB_PORT");
         unsetenv("COINAPP_DB_USER");
@@ -35,16 +35,16 @@ TEST_CASE("Database connection string formatting", "[db_config]") {
     SECTION("Connection string uses default values") {
         auto config = database::EnvironmentLoader::load();
         std::string conn_str = static_cast<std::string>(config);
-        REQUIRE(conn_str == "host=127.0.0.1 port=5432 dbname=coin_catalog user=coinapp password=coinappdev");
+        REQUIRE(conn_str == "host=127.0.0.1 port=5432 dbname=coin_catalog_dev user=coinapp password=coinappdev");
     }
 
-    SECTION("Connection string refelcts environment ovverrides") {
+    SECTION("Connection string reflects environment ovverrides") {
         setenv("COINAPP_DB_HOST", "db.example.com",1);
         setenv("COINAPP_DB_PORT", "6533", 1);
 
         auto config = database::EnvironmentLoader::load();
         std::string conn_str = static_cast<std::string>(config);
-        REQUIRE(conn_str == "host=db.example.com port=6533 dbname=coin_catalog user=coinapp password=coinappdev");
+        REQUIRE(conn_str == "host=db.example.com port=6533 dbname=coin_catalog_dev user=coinapp password=coinappdev");
 
         unsetenv("COINAPP_DB_HOST");
         unsetenv("COINAPP_DB_PORT");    
