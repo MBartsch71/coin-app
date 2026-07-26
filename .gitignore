@@ -43,6 +43,7 @@ Makefile
 #Environment files
 .env
 .env *
+config/.env*
 !.env.example
 
 # OS files
