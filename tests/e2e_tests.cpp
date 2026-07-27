@@ -81,10 +81,21 @@ TEST_CASE("E2E: full stack serves requests", "[e2e]") {
     // 2. The /coins page renders the seeded coin
     auto coins = cpr::Get(cpr::Url{base_url + "/coins"});
     REQUIRE(coins.status_code == 200);
-    REQUIRE(coins.text.find("TEST_Krügerrand") != std::string::npos);
-    REQUIRE(coins.text.find("South Africa")    != std::string::npos);
-    REQUIRE(coins.text.find("1967")            != std::string::npos);
-    REQUIRE(coins.text.find("Gold")            != std::string::npos);
+
+    // Existing field (passing since Phase 0)
+    CHECK(coins.text.find("TEST_Krügerrand") != std::string::npos);
+    CHECK(coins.text.find("South Africa")    != std::string::npos);
+    CHECK(coins.text.find("1967")            != std::string::npos);
+    CHECK(coins.text.find("Gold")            != std::string::npos);
+
+    // Phase 1. FULL coin information 
+    CHECK(coins.text.find("TEST_Vault") != std::string::npos); 
+    CHECK(coins.text.find("MS65") != std::string::npos); 
+    CHECK(coins.text.find("TESTMM") != std::string::npos); 
+    CHECK(coins.text.find("TEST_Dealer") != std::string::npos); 
+    CHECK(coins.text.find("1450") != std::string::npos); 
+    CHECK(coins.text.find("0.9167") != std::string::npos); 
+    CHECK(coins.text.find("33.931") != std::string::npos); 
 
     // Cleanup (the app is killed by RAII at scope end)
     pqxx::connection conn{conn_str};
