@@ -105,7 +105,7 @@ These strategies directly serve the quality goals of testability, clean layering
 flowchart TB
     subgraph CoinApp["coin-app (single binary)"]
         Routes["Crow Routes<br/>src/main.cpp<br/>/health · / · /coins"]
-        Config["Configuration<br/>src/database/db_config.hpp/.cpp<br/>EnvironmentLoader · DatabaseConfigValues"]
+        Config["Configuration<br/>src/config/app_config.hpp/.cpp<br/>EnvironmentLoader · AppConfigValues"]
         Repo["CoinRepository<br/>src/coins/coin_repository.hpp/.cpp<br/>ALL SQL lives here"]
         Domain["Domain types<br/>src/coins/coin.hpp<br/>struct Coin"]
         Tpl["Mustache Templates<br/>templates/index.html<br/>templates/partials/coin_list.html"]
@@ -126,13 +126,13 @@ flowchart TB
 | Building Block | Location | Responsibility |
 |----------------|----------|----------------|
 | **Crow routes** | `src/main.cpp` | Thin HTTP layer: wire Crow app, map `/health`, `/`, `/coins`; translate repository results to HTTP 200 / 500 / 503; render mustache templates. Contains **no SQL and no pqxx includes**. |
-| **Configuration** | `src/database/db_config.hpp/.cpp` | `EnvironmentLoader` reads `COINAPP_DB_HOST/PORT/NAME/USER/PASSWORD` and `COINAPP_PORT`; `DatabaseConfigValues` supplies defaults and an `explicit operator std::string` producing the libpqxx connection string. |
+| **Configuration** | `src/config/app_config.hpp/.cpp` | `config::EnvironmentLoader` reads `COINAPP_DB_HOST/PORT/NAME/USER/PASSWORD` and `COINAPP_PORT`; `AppConfigValues` supplies defaults (typed, with safe int parsing) and an `explicit operator std::string` producing the libpqxx connection string. |
 | **CoinRepository** | `src/coins/coin_repository.hpp/.cpp` | Encapsulates all persistence. List query JOINs `coins` with `coin_references`, applying `COALESCE(title_override, title)`. Catches pqxx exceptions at the boundary. |
 | **Domain types** | `src/coins/coin.hpp` | `struct Coin { title, country, year:int, metal }` — the currency of the application core. |
 | **Error type** | `src/coins/coin_repository.hpp` | `enum class CoinRepositoryError { ConnectionFailed, QueryFailed }`, returned via `std::expected<std::vector<Coin>, CoinRepositoryError>`. |
 | **Templates** | `templates/` | `index.html` page shell + `partials/coin_list.html` HTMX partial; base path set via compile-time `COINAPP_TEMPLATE_DIR` (see Crow gotcha, section 11). |
 | **Schema / migrations** | `src/database/migrations/01_init.sql` | DDL for `coin_references` (catalog: title, country, `primary_metal` ENUM Gold/Silver/Copper/Platinum/Palladium/Other, composition, fineness, weights, diameter), `coins` (collection items: reference_id FK, storage_location_id FK, title_override, year, mint_mark, grade, quantity, purchase_price/currency/date, dealer, notes), `storage_locations`, `tags`, and `coin_tags` (many-to-many). |
-| **Tests** | `tests/` | `test_db_config.cpp` (unit), `test_coin_repository.cpp` (integration vs. test DB), plus the E2E harness (Phase 0). |
+| **Tests** | `tests/` | `test_db_config.cpp` (unit), `test_coin_repository.cpp` (integration vs. test DB), `e2e_tests.cpp` (spawns the real binary, `cpr` HTTP), shared fixtures `coin_fixtures.hpp`, env wrapper `run_with_env.sh` (ADR-0007). |
 
 **Key structural rules** (enforced by convention and review): routes never include pqxx headers; SQL text appears only in `CoinRepository`; errors cross the repository boundary as values, not exceptions.
 
@@ -213,6 +213,7 @@ flowchart TB
 ### 7.2 Deployment Process
 
 - One binary for all environments; behavior is selected purely via environment variables from a per-environment `.env` file (gitignored) — ADR-0002 / ADR-0005.
+- **Database containers are systemd-managed via Quadlet** (ADR-0008): one `.container` file per environment in `~/.config/containers/systemd/` on the host, `Restart=always`, started at boot via systemd linger. Manage with `systemctl --user status|restart coin-postgres-<env>`; logs via `journalctl --user -u ...`.
 - Prod runs as a **systemd user service**; deployment = build release → copy binary + `templates/` → restart service, executed only when the full test suite is green.
 - Schema changes are applied by running SQL from `src/database/migrations/` manually against the target database (no migration runner yet — see section 11).
 
@@ -251,11 +252,13 @@ All significant decisions are recorded as ADRs in `adr/`:
 | ADR | Title | Decision in brief |
 |-----|-------|-------------------|
 | [ADR-0001](adr/0001-crow-as-web-framework.md) | Crow as web framework | Lightweight, header-only, ASIO-based, mustache built in. Trade-off: smaller community; some surprising behavior (route-level template base is reset per request). |
-| [ADR-0002](adr/0002-configuration-via-environment-variables.md) | Configuration via environment variables only | 12-factor style; `EnvironmentLoader` + defaults; one binary for all environments; `.env` per environment, gitignored. |
-| [ADR-0003](adr/0003-repository-pattern.md) | Repository pattern | `CoinRepository` encapsulates ALL SQL and returns domain objects; routes stay thin (no SQL, no pqxx include in `main.cpp`). |
-| [ADR-0004](adr/0004-error-handling-with-std-expected.md) | Error handling with `std::expected` | pqxx exceptions are caught at the repository boundary and translated to `CoinRepositoryError` values; routes map them to HTTP 503/500. |
+| [ADR-0002](adr/0002-config-via-environment-variables.md) | Configuration via environment variables only | 12-factor style; `EnvironmentLoader` + defaults; one binary for all environments; `.env` per environment, gitignored. |
+| [ADR-0003](adr/0003-repository-pattern-for-db-access.md) | Repository pattern | `CoinRepository` encapsulates ALL SQL and returns domain objects; routes stay thin (no SQL, no pqxx include in `main.cpp`). |
+| [ADR-0004](adr/0004-std-expected-for-error-handling.md) | Error handling with `std::expected` | pqxx exceptions are caught at the repository boundary and translated to `CoinRepositoryError` values; routes map them to HTTP 503/500. |
 | [ADR-0005](adr/0005-environment-isolation-via-podman-containers.md) | Environment isolation via podman containers | Three containers (dev 5432 / test 5433 / prod 5434) with distinct DBs and credentials; test is disposable; prod runs as a systemd user service with test-gated deployment. |
-| [ADR-0006](adr/0006-test-strategy-pyramid.md) | Test strategy pyramid | Unit (Catch2) → integration (Catch2 vs. real test DB) → E2E (real binary subprocess + `cpr` HTTP); every feature starts with a failing E2E test, commit on green. |
+| [ADR-0006](adr/0006-test-strategy-unit-integration-e2e.md) | Test strategy pyramid | Unit (Catch2) → integration (Catch2 vs. real test DB) → E2E (real binary subprocess + `cpr` HTTP); every feature starts with a failing E2E test, commit on green. |
+| [ADR-0007](adr/0007-test-environment-via-wrapper-script.md) | Test environment via env-wrapper script | `tests/run_with_env.sh` sources the per-environment `.env` file and `exec`s the test binary; single source of truth for test env, no duplication in CMake. |
+| [ADR-0008](adr/0008-container-lifecycle-via-quadlet.md) | Container lifecycle via Quadlet and systemd linger | Postgres containers run as systemd user services generated from Quadlet `.container` files; `Restart=always`; linger enabled for boot start without login. |
 
 ---
 
