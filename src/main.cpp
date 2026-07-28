@@ -4,6 +4,7 @@
 #include "config/app_config.hpp"
 #include "coins/coin_repository.hpp"
 #include <cstdint>
+#include <format>
 #include <string>
 
 int main() {
@@ -48,6 +49,18 @@ int main() {
             item["country"] = coin.country;
             item["year"] = coin.year;
             item["metal"] = coin.metal;
+            item["quantity"] = coin.quantity;
+            item["purchase_price"] = std::format("{:.2f}", coin.purchase_price);
+            item["purchase_currency"] = coin.purchase_currency;
+            item["dealer"] = coin.dealer;
+            
+            // optionals: only present in the context when recorded
+            if (coin.mint_mark)         item["mint_mark"]       = *coin.mint_mark;
+            if (coin.grade)             item["grade"]           = *coin.grade;
+            if (coin.fineness)          item["fineness"]        = std::format("{:.4f}", *coin.fineness);
+            if (coin.total_weight_g)    item["total_weight_g"]  = std::format("{:.3f}", *coin.total_weight_g);
+            if (coin.location)          item["location"]        = *coin.location;
+
             coin_list.push_back(std::move(item));
         }
 

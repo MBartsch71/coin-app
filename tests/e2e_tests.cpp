@@ -93,7 +93,7 @@ TEST_CASE("E2E: full stack serves requests", "[e2e]") {
     CHECK(coins.text.find("MS65") != std::string::npos); 
     CHECK(coins.text.find("TESTMM") != std::string::npos); 
     CHECK(coins.text.find("TEST_Dealer") != std::string::npos); 
-    CHECK(coins.text.find("1450") != std::string::npos); 
+    CHECK(coins.text.find("145.00") != std::string::npos); 
     CHECK(coins.text.find("0.9167") != std::string::npos); 
     CHECK(coins.text.find("33.931") != std::string::npos); 
 
