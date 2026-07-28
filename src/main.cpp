@@ -4,13 +4,17 @@
 #include "config/app_config.hpp"
 #include "coins/coin_repository.hpp"
 #include <cstdint>
+#include <cstdlib>
 #include <format>
 #include <string>
 
 int main() {
     crow::SimpleApp app;
 
-    crow::mustache::set_global_base(COINAPP_TEMPLATE_DIR);
+    //Runtime override wins; compile-time path is the fallback (dev default)
+    const char* env_template_dir = std::getenv("COINAPP_TEMPLATE_DIR");
+    crow::mustache::set_global_base(env_template_dir ? env_template_dir
+                                                     : COINAPP_TEMPLATE_DIR);
 
     auto config = config::EnvironmentLoader::load();
 
