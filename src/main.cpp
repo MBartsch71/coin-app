@@ -36,7 +36,7 @@ int main() {
         if (!result) {
             switch (result.error()) {
                 case coins::CoinRepositoryError::ConnectionFailed:
-                    return crow::response(503, "Database anavailable");
+                    return crow::response(503, "Database unavailable");
                 case coins::CoinRepositoryError::QueryFailed:
                     return crow::response(500, "Could not load coins");
             }
