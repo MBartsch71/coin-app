@@ -259,6 +259,8 @@ All significant decisions are recorded as ADRs in `adr/`:
 | [ADR-0006](adr/0006-test-strategy-unit-integration-e2e.md) | Test strategy pyramid | Unit (Catch2) → integration (Catch2 vs. real test DB) → E2E (real binary subprocess + `cpr` HTTP); every feature starts with a failing E2E test, commit on green. |
 | [ADR-0007](adr/0007-test-environment-via-wrapper-script.md) | Test environment via env-wrapper script | `tests/run_with_env.sh` sources the per-environment `.env` file and `exec`s the test binary; single source of truth for test env, no duplication in CMake. |
 | [ADR-0008](adr/0008-container-lifecycle-via-quadlet.md) | Container lifecycle via Quadlet and systemd linger | Postgres containers run as systemd user services generated from Quadlet `.container` files; `Restart=always`; linger enabled for boot start without login. |
+| [ADR-0009](adr/0009-purchase-price-required-fact.md) | Purchase price is a required fact | Plain `double`, never optional; 0.00 = gift or unknown (owner-accepted ambiguity); schema enforces `NOT NULL DEFAULT 0`. |
+| [ADR-0010](adr/0010-prod-deployment-systemd-deploy-script.md) | Prod deployment via systemd + test-gated deploy script | Prod home `~/apps/coin-app/` separated from dev repo; systemd user service ordered after the DB; `scripts/deploy.sh` gates on the full test pyramid. |
 
 ---
 

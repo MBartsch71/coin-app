@@ -19,7 +19,6 @@ One dedicated PostgreSQL **podman container per environment**:
 | prod | `coin-postgres-prod` | 5434 | `coin_catalog_prod` | 9080 |
 
 - The test container is **disposable**: recreated/wiped/seeded freely
-- Prod uses **distinct credentials** from dev/test — shared passwords defeat isolation
 - Migrations are applied per environment (manually for now; runner is on the debt list)
 - The app selects its environment purely through env vars (see ADR-0002)
 
@@ -40,6 +39,12 @@ One dedicated PostgreSQL **podman container per environment**:
 
 - **One container, three databases**: weaker isolation; rejected on Matthias's explicit preference
 - **Separate machines**: overkill for a single-host hobby project
+
+## Amendment (2026-07-28): shared credentials across all environments
+
+The original decision gave prod **distinct credentials** from dev/test. During Phase 0.5 this was revised by domain-owner decision: this is a **localhost-only, single-user application** with no public exposure. Distinct credentials produced operational bugs (an empty-password incident caused by shell quoting) without adding meaningful safety. All environments now share the dev credentials (`coinappdev`).
+
+**What did NOT change:** the real isolation boundary remains the separate containers, databases, and ports per environment — not the passwords. The threat model simply doesn't require credential separation on top of that.
 
 ## References
 
