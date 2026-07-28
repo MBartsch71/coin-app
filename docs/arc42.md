@@ -155,7 +155,7 @@ sequenceDiagram
     R->>P: connect (per request) +<br/>SELECT ... JOIN coin_references<br/>COALESCE(title_override, title)
     alt success
         P-->>R: rows
-        R-->>C: std::expected vector&lt;Coin&gt;
+        R-->>C: std::expected with Coin list
         C->>M: render coin_list.html<br/>(crow::mustache::set_global_base)
         M-->>C: HTML partial
         C-->>U: 200 OK + HTML
