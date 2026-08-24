@@ -75,6 +75,44 @@ int main() {
         return crow::response{partial.render(ctx)};
     });
 
+    CROW_ROUTE(app, "/api/references/search")([](const crow::request& req) {
+        const char* q = req.url_params.get("q");
+
+        crow::json::wvalue out;
+
+        if (q == nullptr || std::string_view{q}.empty()) {
+            out["matches"] = crow::json::wvalue::list();
+            return crow::response{out};
+        }
+
+        auto config = config::EnvironmentLoader::load();
+        coins::CoinRepository repo{static_cast<std::string>(config)};
+
+        auto result = repo.search_references(q);
+
+        if (!result) {
+            switch (result.error()) {
+                case coins::CoinRepositoryError::ConnectionFailed:
+                    return crow::response(503, "Database unavailable");
+                case coins::CoinRepositoryError::QueryFailed:
+                    return crow::response(500, "Search failed");
+            }
+        }
+
+        auto matches = crow::json::wvalue::list();
+        for (const auto& m : result.value()) {
+            crow::json::wvalue item;
+            item["id"]     = m.id;
+            item["title"]  = m.title;
+            item["country"] = m.country;
+            item["metal"]   = m.metal;
+            matches.push_back(std::move(item));
+        }
+
+        out["matches"] = std::move(matches);
+        return crow::response{out};
+    });
+
     app.port(static_cast<std::uint16_t>(config.web_port)).multithreaded().run();
 }
 

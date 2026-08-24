@@ -56,3 +56,25 @@ TEST_CASE("CoinRepository lists coins from database" ,
                 REQUIRE(it->location.value() == "TEST_Vault");
                 test_fixtures::clean(conn);
 }
+
+TEST_CASE("CoinRepository searches references by title", 
+        "[coin_repository][integration]") {
+
+            auto config = config::EnvironmentLoader::load();
+            std::string conn_str = static_cast<std::string>(config);
+
+            pqxx::connection conn{conn_str};
+            test_fixtures::clean(conn);
+            test_fixtures::insert_sample(conn);
+
+            coins::CoinRepository repo{conn_str};
+            auto result = repo.search_references("Krüg");
+
+            REQUIRE(result.has_value());
+            REQUIRE(result->size() == 1);
+            REQUIRE(result->at(0).title == "TEST_Krügerrand");
+            REQUIRE(result->at(0).country == "South Africa");
+            REQUIRE(result->at(0).metal == "Gold");
+
+            test_fixtures::clean(conn);
+}

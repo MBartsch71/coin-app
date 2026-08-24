@@ -71,4 +71,41 @@ namespace coins {
             return std::unexpected{CoinRepositoryError::QueryFailed};
         }
     } 
+
+    auto CoinRepository::search_references(std::string_view query) const -> std::expected<std::vector<ReferenceMatch>, CoinRepositoryError> {
+        try {
+            pqxx::connection conn{connection_string_};
+            pqxx::work tx{conn};
+
+            const std::string pattern = "%" + std::string(query) + "%";
+            
+            auto result = tx.exec_params(
+                "SELECT id, title, country, primary_metal::text AS metal "
+                "FROM coin_references "
+                "WHERE title ILIKE $1 "
+                "ORDER BY title "
+                "LIMIT 20",
+                pattern
+            );
+
+            std::vector<ReferenceMatch> matches;
+            matches.reserve(result.size());
+
+            for (const auto& row : result) {
+                matches.push_back(ReferenceMatch{
+                    .id      = row["id"].as<int64_t>(),
+                    .title   = row["title"].c_str(),
+                    .country = row["country"].c_str(),
+                    .metal   = row["metal"].c_str()
+                });
+            }
+
+            return matches;
+        } catch (const pqxx::broken_connection&) {
+            return std::unexpected{CoinRepositoryError::ConnectionFailed};
+        } catch (const std::exception&) {
+            return std::unexpected{CoinRepositoryError::QueryFailed};
+        }
+    }
+    
 }

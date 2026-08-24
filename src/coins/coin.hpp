@@ -22,6 +22,13 @@ namespace coins {
         std::optional<double> total_weight_g; 
         std::optional<std::string> location;
     };
+
+    struct ReferenceMatch {
+        int64_t id;
+        std::string title;
+        std::string country;
+        std::string metal;
+    };
 }
 
 #endif // COINAPP_COIN_HPP

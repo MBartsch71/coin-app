@@ -18,9 +18,11 @@ namespace coins {
             explicit CoinRepository(std::string connection_string);
 
             auto list_all() const -> std::expected<std::vector<Coin>, CoinRepositoryError>;
+
+            auto search_references(std::string_view query) const -> std::expected<std::vector<ReferenceMatch>, CoinRepositoryError>;
         
-            private:
-                std::string connection_string_;
+        private:
+            std::string connection_string_;
     };
 }
 

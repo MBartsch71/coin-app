@@ -101,3 +101,70 @@ TEST_CASE("E2E: full stack serves requests", "[e2e]") {
     pqxx::connection conn{conn_str};
     test_fixtures::clean(conn);
 }
+
+TEST_CASE("E2E: reference search endpoint returns matches", "[e2e]") {
+    auto config = config::EnvironmentLoader::load();
+    const std::string base_url =
+        "http://127.0.0.1:" + std::to_string(config.web_port);
+    const std::string conn_str = static_cast<std::string>(config);
+
+    {
+        pqxx::connection conn{conn_str};
+        test_fixtures::clean(conn);
+        test_fixtures::insert_sample(conn);
+    }
+
+    AppProcess app{COINAPP_ENV_WRAPPER, COINAPP_TEST_ENV, COINAPP_BINARY};
+    REQUIRE(wait_until_ready(base_url));
+
+    auto r = cpr::Get(cpr::Url{base_url + "/api/references/search"},
+                      cpr::Parameters{{"q", "Krüg"}});
+    REQUIRE(r.status_code == 200);
+
+    CHECK(r.text.find("TEST_Krügerrand") != std::string::npos);
+    CHECK(r.text.find("South Africa") != std::string::npos);
+    CHECK(r.text.find("Gold") != std::string::npos);
+
+    pqxx::connection conn{conn_str};
+    test_fixtures::clean(conn);
+}
+
+TEST_CASE("E2E: adding a coin creates reference and collection item", "[e2e]") {
+    auto config = config::EnvironmentLoader::load();
+    const std::string base_url =
+        "http://127.0.0.1:" + std::to_string(config.web_port);
+    const std::string conn_str = static_cast<std::string>(config);
+
+    {
+        pqxx::connection conn{conn_str};
+        test_fixtures::clean(conn);
+    }
+
+    AppProcess app{COINAPP_ENV_WRAPPER, COINAPP_TEST_ENV, COINAPP_BINARY};
+    REQUIRE(wait_until_ready(base_url));
+
+    auto post = cpr::Post(
+        cpr::Url{base_url + "/coins"},
+        cpr::Payload{{"new_title",              "TEST_MapleLeaf"},
+                     {"new_country",            "Canada"},
+                     {"new_year",               "2023"},
+                     {"new_metal",              "Gold"},
+                     {"new_quantity",           "2"},
+                     {"new_purchase_price",     "2100.50"},
+                     {"new_purchase_currency",  "CHF"},
+                     {"new_dealer",             "TEST_Shop"}}
+    );
+
+    REQUIRE((post.status_code == 303 || post.status_code == 200));
+
+    auto coins = cpr::Get(cpr::Url{base_url + "/coins"});
+    REQUIRE(coins.status_code == 200);
+    CHECK(coins.text.find("TEST_MapleLeaf") != std::string::npos);
+    CHECK(coins.text.find("Canada")         != std::string::npos);
+    CHECK(coins.text.find("2023")           != std::string::npos);
+    CHECK(coins.text.find("TEST_Shop")      != std::string::npos);
+    CHECK(coins.text.find("2100.50")        != std::string::npos);
+
+    pqxx::connection conn{conn_str};
+    test_fixtures::clean(conn);
+}
