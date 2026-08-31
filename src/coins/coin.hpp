@@ -29,6 +29,18 @@ namespace coins {
         std::string country;
         std::string metal;
     };
+
+    struct NewCoinData {
+        std::optional<int64_t>      reference_id;
+        std::optional<std::string>  ref_title;
+        std::optional<std::string>  ref_country;
+        std::optional<std::string>  ref_metal;
+        int                         year;
+        int                         quantity;
+        double                      purchase_price;
+        std::string                 purchase_currency;
+        std::string                 dealer;           
+    };
 }
 
 #endif // COINAPP_COIN_HPP

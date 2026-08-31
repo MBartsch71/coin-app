@@ -6,7 +6,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <format>
+#include <optional>
 #include <string>
+#include <string_view>
 
 int main() {
     crow::SimpleApp app;
@@ -111,6 +113,75 @@ int main() {
 
         out["matches"] = std::move(matches);
         return crow::response{out};
+    });
+
+    CROW_ROUTE(app, "/coins").methods(crow::HTTPMethod::Post)([](const crow::request& req) {
+        crow::query_string form = req.get_body_params();
+
+        auto get_str = [&](const char* key) -> std::optional<std::string> {
+            if (const char* v = form.get(key)) {
+                return std::string{v};
+            }
+            return std::nullopt;
+        };
+
+        auto parse_int = [&](const char* key) -> std::optional<int> {
+            auto v = get_str(key);
+            if (!v) return std::nullopt;
+            try {return std::stoi(*v); }
+            catch (const std::exception&) {return std::nullopt; }
+        };
+
+        auto parse_double = [&](const char* key) -> std::optional<double> {
+            auto v = get_str(key);
+            if (!v) return std::nullopt;
+            try {return std::stod(*v); }
+            catch (const std::exception&) {return std::nullopt; }
+        };
+        
+        coins::NewCoinData data;
+        if (auto ref = get_str("reference_id")) {
+            try {
+                data.reference_id = std::stoll(*ref);
+            } catch (const std::exception&) {
+                return crow::response(400, "Invalid reference_id");
+            }
+        } else {
+            data.ref_title = get_str("ref_title");
+            data.ref_country = get_str("ref_country");
+            data.ref_metal = get_str("ref_metal");
+        } 
+
+        auto year = parse_int("year");
+        auto qty  = parse_int("quantity");
+        auto price = parse_double("purchase_price");
+        
+        if (!year || !qty || !price) {
+            return crow::response(400, "invalid or missing numeric fields");
+        }
+
+        data.year = *year;
+        data.quantity = *qty;
+        data.purchase_price = *price;
+        data.purchase_currency = get_str("purchase_currency").value_or("CHF");
+        data.dealer = get_str("dealer").value_or("");
+        
+        auto config  = config::EnvironmentLoader::load();
+        coins::CoinRepository repo{static_cast<std::string>(config)};
+
+        auto result = repo.add_coin(data);
+        if (!result) {
+            switch (result.error()) {
+                case coins::CoinRepositoryError::ConnectionFailed:
+                    return crow::response(503, "Database unavailable");
+                case coins::CoinRepositoryError::QueryFailed:
+                    return crow::response(500, "Could not add coin");
+            }
+        }
+
+        crow::response res{303};
+        res.set_header("Location", "/coins");
+        return res;
     });
 
     app.port(static_cast<std::uint16_t>(config.web_port)).multithreaded().run();

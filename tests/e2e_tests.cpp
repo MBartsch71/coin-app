@@ -145,14 +145,15 @@ TEST_CASE("E2E: adding a coin creates reference and collection item", "[e2e]") {
 
     auto post = cpr::Post(
         cpr::Url{base_url + "/coins"},
-        cpr::Payload{{"new_title",              "TEST_MapleLeaf"},
-                     {"new_country",            "Canada"},
-                     {"new_year",               "2023"},
-                     {"new_metal",              "Gold"},
-                     {"new_quantity",           "2"},
-                     {"new_purchase_price",     "2100.50"},
-                     {"new_purchase_currency",  "CHF"},
-                     {"new_dealer",             "TEST_Shop"}}
+        cpr::Payload{{"ref_title",              "TEST_MapleLeaf"},
+                     {"ref_country",            "Canada"},
+                     {"year",               "2023"},
+                     {"ref_metal",              "Gold"},
+                     {"quantity",           "2"},
+                     {"purchase_price",     "2100.50"},
+                     {"purchase_currency",  "CHF"},
+                     {"dealer",             "TEST_Shop"}},
+        cpr::Redirect{false}
     );
 
     REQUIRE((post.status_code == 303 || post.status_code == 200));
