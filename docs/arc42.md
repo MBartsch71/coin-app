@@ -17,7 +17,7 @@ coin-app is a hobby web application that lets Matthias maintain his personal coi
 | R2 | Health endpoint for monitoring (`/health`) | Implemented |
 | R3 | Display all coin information in the web UI | Phase 1 |
 | R4 | Styling with Pico.css | Phase 2 |
-| R5 | Add-coin CRUD | Phase 3 |
+| R5 | Add-coin CRUD (form with type-ahead reference search, transactional insert) | Implemented |
 | R6 | Edit / delete coins | Phase 4 |
 
 ### 1.2 Quality Goals
@@ -104,11 +104,11 @@ These strategies directly serve the quality goals of testability, clean layering
 ```mermaid
 flowchart TB
     subgraph CoinApp["coin-app (single binary)"]
-        Routes["Crow Routes<br/>src/main.cpp<br/>/health · / · /coins"]
+        Routes["Crow Routes<br/>src/main.cpp<br/>/health · / · GET/POST /coins<br/>/coins/new · /api/references/search<br/>/partials/references/search"]
         Config["Configuration<br/>src/config/app_config.hpp/.cpp<br/>EnvironmentLoader · AppConfigValues"]
         Repo["CoinRepository<br/>src/coins/coin_repository.hpp/.cpp<br/>ALL SQL lives here"]
         Domain["Domain types<br/>src/coins/coin.hpp<br/>struct Coin"]
-        Tpl["Mustache Templates<br/>templates/index.html<br/>templates/partials/coin_list.html"]
+        Tpl["Mustache Templates<br/>templates/index.html · coin_form.html<br/>partials/coin_list · reference_options"]
     end
     DB[("PostgreSQL<br/>coin_references · coins<br/>storage_locations · tags")]
     Env["Process environment<br/>COINAPP_* variables"]
@@ -125,12 +125,12 @@ flowchart TB
 
 | Building Block | Location | Responsibility |
 |----------------|----------|----------------|
-| **Crow routes** | `src/main.cpp` | Thin HTTP layer: wire Crow app, map `/health`, `/`, `/coins`; translate repository results to HTTP 200 / 500 / 503; render mustache templates. Contains **no SQL and no pqxx includes**. |
+| **Crow routes** | `src/main.cpp` | Thin HTTP layer: `GET /health`, `GET /`, `GET /coins` (list), `POST /coins` (create, PRG 303 — ADR-0011), `GET /coins/new` (form), `GET /api/references/search` (JSON), `GET /partials/references/search` (HTMX fragment). Translates repository error categories to HTTP (ADR-0012). Contains **no SQL and no pqxx includes**. |
 | **Configuration** | `src/config/app_config.hpp/.cpp` | `config::EnvironmentLoader` reads `COINAPP_DB_HOST/PORT/NAME/USER/PASSWORD` and `COINAPP_PORT`; `AppConfigValues` supplies defaults (typed, with safe int parsing) and an `explicit operator std::string` producing the libpqxx connection string. |
-| **CoinRepository** | `src/coins/coin_repository.hpp/.cpp` | Encapsulates all persistence. List query JOINs `coins` with `coin_references`, applying `COALESCE(title_override, title)`. Catches pqxx exceptions at the boundary. |
-| **Domain types** | `src/coins/coin.hpp` | `struct Coin { title, country, year:int, metal }` — the currency of the application core. |
-| **Error type** | `src/coins/coin_repository.hpp` | `enum class CoinRepositoryError { ConnectionFailed, QueryFailed }`, returned via `std::expected<std::vector<Coin>, CoinRepositoryError>`. |
-| **Templates** | `templates/` | `index.html` page shell + `partials/coin_list.html` HTMX partial; base path set via compile-time `COINAPP_TEMPLATE_DIR` (see Crow gotcha, section 11). |
+| **CoinRepository** | `src/coins/coin_repository.hpp/.cpp` | Encapsulates all persistence: `list_all()` (JOIN + COALESCE display query), `search_references()` (ILIKE type-ahead), `add_coin()` (single transaction: insert reference if new + insert collection item). Contract validation before DB access (`InvalidData`), real exceptions logged (`std::cerr`) and translated to error categories at the boundary (ADR-0012). |
+| **Domain types** | `src/coins/coin.hpp` | `struct Coin` (full collection-item view, optionals mirror schema nullability), `struct ReferenceMatch` (type-ahead result), `struct NewCoinData` (add-coin contract: existing `reference_id` or complete `ref_*` triple). |
+| **Error type** | `src/coins/coin_repository.hpp` | `enum class CoinRepositoryError { ConnectionFailed, InvalidData, QueryFailed }`, returned via `std::expected` (ADR-0004/ADR-0012). |
+| **Templates** | `templates/` | `index.html` shell, `coin_form.html` (add-coin form, HTMX type-ahead), `partials/coin_list.html`, `partials/reference_options.html`; base path via `COINAPP_TEMPLATE_DIR` env override with compile-time fallback (ADR-0010). |
 | **Schema / migrations** | `src/database/migrations/01_init.sql` | DDL for `coin_references` (catalog: title, country, `primary_metal` ENUM Gold/Silver/Copper/Platinum/Palladium/Other, composition, fineness, weights, diameter), `coins` (collection items: reference_id FK, storage_location_id FK, title_override, year, mint_mark, grade, quantity, purchase_price/currency/date, dealer, notes), `storage_locations`, `tags`, and `coin_tags` (many-to-many). |
 | **Tests** | `tests/` | `test_db_config.cpp` (unit), `test_coin_repository.cpp` (integration vs. test DB), `e2e_tests.cpp` (spawns the real binary, `cpr` HTTP), shared fixtures `coin_fixtures.hpp`, env wrapper `run_with_env.sh` (ADR-0007). |
 
@@ -261,6 +261,8 @@ All significant decisions are recorded as ADRs in `adr/`:
 | [ADR-0008](adr/0008-container-lifecycle-via-quadlet.md) | Container lifecycle via Quadlet and systemd linger | Postgres containers run as systemd user services generated from Quadlet `.container` files; `Restart=always`; linger enabled for boot start without login. |
 | [ADR-0009](adr/0009-purchase-price-required-fact.md) | Purchase price is a required fact | Plain `double`, never optional; 0.00 = gift or unknown (owner-accepted ambiguity); schema enforces `NOT NULL DEFAULT 0`. |
 | [ADR-0010](adr/0010-prod-deployment-systemd-deploy-script.md) | Prod deployment via systemd + test-gated deploy script | Prod home `~/apps/coin-app/` separated from dev repo; systemd user service ordered after the DB; `scripts/deploy.sh` gates on the full test pyramid. |
+| [ADR-0011](adr/0011-post-redirect-get.md) | Post/Redirect/Get for form submissions | Successful POSTs answer 303 to a GET route; errors render inline. E2E tests observe the raw 303 (`cpr::Redirect{false}`). |
+| [ADR-0012](adr/0012-field-contract-and-error-taxonomy.md) | Field contract (`ref_*` vs bare) and error taxonomy | One naming convention across form/route/tests/struct; empty strings normalized to nullopt at the boundary; `ConnectionFailed`→503, `InvalidData`→400, `QueryFailed`→500; real exceptions logged to journald. |
 
 ---
 
