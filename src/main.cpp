@@ -141,12 +141,15 @@ int main() {
         
         coins::NewCoinData data;
         if (auto ref = get_str("reference_id")) {
-            try {
-                data.reference_id = std::stoll(*ref);
-            } catch (const std::exception&) {
-                return crow::response(400, "Invalid reference_id");
+            if (!ref->empty()) {
+                try {
+                    data.reference_id = std::stoll(*ref);
+                } catch (const std::exception&) {
+                    return crow::response(400, "Invalid reference_id");
+                }
             }
-        } else {
+        } 
+        if (!data.reference_id) {
             data.ref_title = get_str("ref_title");
             data.ref_country = get_str("ref_country");
             data.ref_metal = get_str("ref_metal");

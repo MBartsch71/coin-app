@@ -166,6 +166,25 @@ TEST_CASE("E2E: adding a coin creates reference and collection item", "[e2e]") {
     CHECK(coins.text.find("TEST_Shop")      != std::string::npos);
     CHECK(coins.text.find("2100.50")        != std::string::npos);
 
+    auto post2 = cpr::Post(
+        cpr::Url{base_url + "/coins"},
+        cpr::Payload{{"reference_id",       ""},
+                     {"ref_title",          "TEST_Edge"},
+                     {"ref_country",        "Nowhere"},
+                     {"year",               "2020"},
+                     {"ref_metal",          "Silver"},
+                     {"quantity",           "1"},
+                     {"purchase_price",     "100.00"},
+                     {"purchase_currency",  "CHF"},
+                     {"dealer",             ""}},
+        cpr::Redirect{false}
+    );
+    CHECK(post2.status_code == 303);
+
+    auto coins2 = cpr::Get(cpr::Url{base_url + "/coins"});
+    CHECK(coins2.status_code == 200);
+    CHECK(coins2.text.find("TEST_Edge") != std::string::npos);
+
     pqxx::connection conn{conn_str};
     test_fixtures::clean(conn);
 }
