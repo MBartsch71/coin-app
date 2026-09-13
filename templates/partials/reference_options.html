@@ -1,0 +1,6 @@
+<select name="reference_id">
+    <option value="">- choose existing... -</option>
+    {{#matches}}
+    <option value="{{id}}">{{title}} ({{country}}, {{metal}})</option>
+    {{/matches}}
+</select>

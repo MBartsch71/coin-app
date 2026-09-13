@@ -184,6 +184,38 @@ int main() {
         return res;
     });
 
+    CROW_ROUTE(app, "/coins/new")([] {
+        auto page = crow::mustache::load("coin_form.html");
+        return crow::response{page.render()};
+    });
+
+    //HTML-fragment variant of the reference search (HTMX, Option A)
+    CROW_ROUTE(app, "/partials/references/search")([](const crow::request& req) {
+        const char* q = req.url_params.get("q");
+
+        crow::mustache::context ctx;
+        auto matches = crow::json::wvalue::list();
+
+        if(q != nullptr && !std::string_view{q}.empty()) {
+            auto config = config::EnvironmentLoader::load();
+            coins::CoinRepository repo{static_cast<std::string>(config)};
+            if (auto result = repo.search_references(q)) {
+                for (const auto& m : result.value()) {
+                    crow::json::wvalue item;
+                    item["id"]     = m.id;
+                    item["title"]  = m.title;
+                    item["country"] = m.country;
+                    item["metal"]   = m.metal;
+                    matches.push_back(std::move(item));
+                }
+            }
+        }
+
+        ctx["matches"] = std::move(matches);
+        auto partial = crow::mustache::load("partials/reference_options.html");
+        return crow::response{partial.render(ctx)};
+    });
+
     app.port(static_cast<std::uint16_t>(config.web_port)).multithreaded().run();
 }
 

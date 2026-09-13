@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add a coin</title>
+    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+</head>
+<body>
+    <h1>Add a coin</h1>
+    <p></p><a href="/">\<- back to collection</a></p>
+
+    <form method="post" action="/coins">
+
+        <section>
+            <h2>1. Which coin?</h2>
+            <label for="ref-search">Search your catalog</label >
+            <input type="search" id="ref-search" name="q"
+                   placeholder="e.g. Krügerrand"
+                   hx-get="/partials/references/search"
+                   hx-trigger="keyup changed delay:300ms"
+                   hx-target="#reference-select"
+                   hx-swap="innerHTML">
+            <div id="reference-select">
+                <select name="reference_id">
+                    <option value="">- type to search your catalog... -</option>
+                </select>
+            </div>
+
+            <fieldset>
+                <legend>..or catalog it as new</legend>
+                <input type="text" name="ref_title" placeholder="Title (e.g. Krügerrand 1 oz)">
+                <input type="text" name="ref_country" placeholder="Country">
+                <select name="ref_metal">
+                    <option value="">Metal..</option>
+                    <option>Gold</option>
+                    <option>Silver</option>
+                    <option>Copper</option>
+                    <option>Platinum</option>
+                    <option>Palladium</option>
+                    <option>Other</option>
+                </select>
+            </fieldset>
+        </section>
+
+        <section>
+            <h2>2. Your coin</h2>
+            <input type="number" name="year" placeholder="Year" required>
+            <input type="number" name="quantity" value="1" min="1" required>
+            <input type="number" name="purchase_price" step="0.01" min="0" value="0" required>
+            <input type="text" name="purchase_currency" value="CHF">
+            <input type="text" name="dealer" placeholder="Dealer (optional)">
+        </section>
+
+        <button type="submit">Add to collection</button>
+    </form>
+</body>
+</html>

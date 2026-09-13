@@ -169,3 +169,43 @@ TEST_CASE("E2E: adding a coin creates reference and collection item", "[e2e]") {
     pqxx::connection conn{conn_str};
     test_fixtures::clean(conn);
 }
+
+TEST_CASE("E2E: the add-coin form page and reference search fragment","[e2e]") {
+    auto config = config::EnvironmentLoader::load();
+    const std::string base_url = 
+        "http://127.0.0.1:" + std::to_string(config.web_port);
+    const std::string conn_str = static_cast<std::string>(config);
+
+    {
+        pqxx::connection conn{conn_str};
+        test_fixtures::clean(conn);
+        test_fixtures::insert_sample(conn);
+    }
+
+    AppProcess app{COINAPP_ENV_WRAPPER, COINAPP_TEST_ENV, COINAPP_BINARY};
+    REQUIRE(wait_until_ready(base_url));
+
+    // 1. The form page renders with all contract fields
+    auto form = cpr::Get(cpr::Url{base_url + "/coins/new"});
+    REQUIRE(form.status_code == 200);
+    CHECK(form.text.find("ref_title")                   != std::string::npos); 
+    CHECK(form.text.find("ref_country")                 != std::string::npos); 
+    CHECK(form.text.find("ref_metal")                   != std::string::npos); 
+    CHECK(form.text.find("year")                        != std::string::npos); 
+    CHECK(form.text.find("quantity")                    != std::string::npos); 
+    CHECK(form.text.find("purchase_price")              != std::string::npos); 
+    CHECK(form.text.find("dealer")                      != std::string::npos); 
+    CHECK(form.text.find("reference_id")                != std::string::npos); 
+    CHECK(form.text.find("/partials/references/search") != std::string::npos); 
+
+    // 2. The fragment endpoint renders matches as HTML (not JSON)
+    auto frag = cpr::Get(cpr::Url{base_url + "/partials/references/search"},
+                         cpr::Parameters{{"q", "Krüg"}});
+    REQUIRE(frag.status_code == 200);
+    CHECK(frag.text.find("TEST_Krügerrand") != std::string::npos);
+    CHECK(frag.text.find("<option")        != std::string::npos);
+    CHECK(frag.text.find('{') == std::string::npos);
+
+    pqxx::connection conn{conn_str};
+    test_fixtures::clean(conn);
+}
