@@ -1,6 +1,7 @@
 #include "coins/coin_repository.hpp"
 #include <pqxx/pqxx>
 #include <utility>
+#include <iostream>
 
 namespace coins {
 
@@ -110,8 +111,8 @@ namespace coins {
 
     auto CoinRepository::add_coin(const NewCoinData& data) const -> std::expected<int64_t, CoinRepositoryError> {
         if (!data.reference_id && 
-            !data.ref_title && !data.ref_country && !data.ref_metal) {
-                return std::unexpected{CoinRepositoryError::QueryFailed};
+            !(data.ref_title && data.ref_country && data.ref_metal)) {
+                return std::unexpected{CoinRepositoryError::InvalidData};
         }
         
         try {
@@ -142,7 +143,8 @@ namespace coins {
             return coin_row["id"].as<int64_t>();
         } catch (const pqxx::broken_connection&) {
             return std::unexpected{CoinRepositoryError::ConnectionFailed};
-        } catch (const std::exception&) {
+        } catch (const std::exception& e) {
+            std::cerr << "add coin failed: " << e.what() << '\n';
             return std::unexpected{CoinRepositoryError::QueryFailed};
         }
     }

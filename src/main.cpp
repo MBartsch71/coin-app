@@ -10,6 +10,18 @@
 #include <string>
 #include <string_view>
 
+namespace {
+
+// Every HTML response declares its charset in the HTTP header —
+// <meta charset> alone is only a fallback hint.
+crow::response html_response(crow::mustache::rendered_template body) {
+    crow::response res{std::move(body)};
+    res.set_header("Content-Type", "text/html; charset=utf-8");
+    return res;
+}
+
+} // namespace
+
 int main() {
     crow::SimpleApp app;
 
@@ -30,7 +42,7 @@ int main() {
         ctx["message"] = "Backend, templates, htmx and PostgreSQL are working.";
 
         auto page = crow::mustache::load("index.html");
-        return crow::response{page.render(ctx)};
+        return html_response(page.render(ctx));
     });
 
     CROW_ROUTE(app, "/coins")([] {
@@ -45,6 +57,8 @@ int main() {
                     return crow::response(503, "Database unavailable");
                 case coins::CoinRepositoryError::QueryFailed:
                     return crow::response(500, "Could not load coins");
+                case coins::CoinRepositoryError::InvalidData:
+                    return crow::response(400, "Invalid request data");
             }
         }
 
@@ -74,7 +88,7 @@ int main() {
         ctx["coins"] = std::move(coin_list);
 
         auto partial = crow::mustache::load("partials/coin_list.html");
-        return crow::response{partial.render(ctx)};
+        return html_response(partial.render(ctx));
     });
 
     CROW_ROUTE(app, "/api/references/search")([](const crow::request& req) {
@@ -98,6 +112,8 @@ int main() {
                     return crow::response(503, "Database unavailable");
                 case coins::CoinRepositoryError::QueryFailed:
                     return crow::response(500, "Search failed");
+                case coins::CoinRepositoryError::InvalidData:
+                    return crow::response(400, "Invalid request data");
             }
         }
 
@@ -139,6 +155,12 @@ int main() {
             catch (const std::exception&) {return std::nullopt; }
         };
         
+        auto get_nonempty = [&](const char* key) -> std::optional<std::string> {
+            auto v = get_str(key);
+            if (v && !v->empty()) return v;
+            return std::nullopt;
+        };
+
         coins::NewCoinData data;
         if (auto ref = get_str("reference_id")) {
             if (!ref->empty()) {
@@ -150,9 +172,9 @@ int main() {
             }
         } 
         if (!data.reference_id) {
-            data.ref_title = get_str("ref_title");
-            data.ref_country = get_str("ref_country");
-            data.ref_metal = get_str("ref_metal");
+            data.ref_title = get_nonempty("ref_title");
+            data.ref_country = get_nonempty("ref_country");
+            data.ref_metal = get_nonempty("ref_metal");
         } 
 
         auto year = parse_int("year");
@@ -179,6 +201,8 @@ int main() {
                     return crow::response(503, "Database unavailable");
                 case coins::CoinRepositoryError::QueryFailed:
                     return crow::response(500, "Could not add coin");
+                case coins::CoinRepositoryError::InvalidData:
+                    return crow::response(400, "Invalid or incomplete coin data");
             }
         }
 
@@ -189,7 +213,7 @@ int main() {
 
     CROW_ROUTE(app, "/coins/new")([] {
         auto page = crow::mustache::load("coin_form.html");
-        return crow::response{page.render()};
+        return html_response(page.render());
     });
 
     //HTML-fragment variant of the reference search (HTMX, Option A)
@@ -216,7 +240,7 @@ int main() {
 
         ctx["matches"] = std::move(matches);
         auto partial = crow::mustache::load("partials/reference_options.html");
-        return crow::response{partial.render(ctx)};
+        return html_response(partial.render(ctx));
     });
 
     app.port(static_cast<std::uint16_t>(config.web_port)).multithreaded().run();

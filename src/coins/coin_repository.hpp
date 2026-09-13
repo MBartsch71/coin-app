@@ -11,7 +11,8 @@ namespace coins {
 
     enum class CoinRepositoryError {
         ConnectionFailed,
-        QueryFailed
+        QueryFailed,
+        InvalidData
     };
 
     class CoinRepository {
