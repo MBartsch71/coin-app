@@ -4,22 +4,23 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{title}}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
     <script src="https://unpkg.com/htmx.org@2.0.0"></script>
 </head>
 <body>
     <h1>{{title}}</h1>
-    <p>{{message}}</p>
+    <p class="muted">{{message}}</p>
 
     <section>
-        <h2>Coins</h2>
-        <div
+        <h2>My collection</h2>
+        <div id="coin-list"
             hx-get="/coins"
             hx-trigger="load"
             hx-target="#coin-list"
             hx-swap="innerHTML">
-            <p>Loading coins...</p>
+            <p class="muted">Loading coins...</p>
         </div>
-        <div id="coin-list"></div>
+        <p class="actions"><a class="button" href="/coins/new">+ Add a coin</a></p>
     </section>
 </body>
 </html>

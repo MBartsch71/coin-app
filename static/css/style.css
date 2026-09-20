@@ -1,0 +1,134 @@
+/* coin-app design tokens */
+:root {
+    --bg: #ffffff;
+    --surface: #f7f7f8;
+    --text: #1a1a1e;
+    --muted: #6b7280;
+    --accent: #b45309;
+    --accent-contrast: #ffffff;
+    --border: #e2e4e8;
+    --hover: #fdf6ec;
+    --radius: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #16181d;
+        --surface: #1e2127;
+        --text: #e8e9eb;
+        --muted: #9ca3af;
+        --accent: #d97706;
+        --accent-contrast: #16181d;
+        --border: #33383f;
+        --hover: #2a2418;
+    }
+}
+
+/* base */
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: system-ui, --apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+}
+
+main {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+h2 { font-size: 1.15rem; margin-top: 2rem; color: var(--muted); }
+
+a { color: var(--accent); }
+
+/* table - the collection */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+th, td {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04rem;
+    color: var(--muted);
+}
+
+tbody tr:hover { background: var(--hover); }
+tbody tr:last-child td { border-bottom: none; }
+
+/* forms */
+input, select, button {
+    font: inherit;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+}
+
+input:focus, select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+form input, form select {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.75rem;
+}
+
+fieldset {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+legend { color: var(--muted); padding: 0 0.4rem; }
+
+/* two fields on one line (stacks on narrow screens) */
+.row {
+    display: flex;
+    gap: 0.75rem
+}
+
+.row > * {
+    flex: 1;
+}
+
+button, .button {
+    display: inline-block;
+    background : var(--accent);
+    color: var(--accent-contrast);
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.6rem 1.2rem;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+button:hover, .button:hover { filter: brightness(1.1); }
+
+/* small helpers */
+.actions { margin-top: 1.5rem; }
+.muted { color: var(--muted); }
+
+
+

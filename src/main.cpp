@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <format>
+#include <fstream>
+#include <sstream>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -31,6 +33,18 @@ int main() {
                                                      : COINAPP_TEMPLATE_DIR);
 
     auto config = config::EnvironmentLoader::load();
+
+    CROW_ROUTE(app, "/static/css/style.css")([] {
+        std::ifstream file{std::string{COINAPP_TEMPLATE_DIR} + "/../static/css/style.css"};
+        if (!file) {
+            return crow::response(404, "style.css not found");
+        }
+        std::ostringstream content;
+        content << file.rdbuf();
+        crow::response res{content.str()};
+        res.set_header("Content-Type", "text/css; charset=utf-8");
+        return res;
+    });
 
     CROW_ROUTE(app, "/health")([] {
         return "OK";
@@ -207,7 +221,7 @@ int main() {
         }
 
         crow::response res{303};
-        res.set_header("Location", "/coins");
+        res.set_header("Location", "/");
         return res;
     });
 

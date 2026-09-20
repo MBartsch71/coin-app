@@ -16,6 +16,9 @@ install -Dm755 "$REPO_DIR/build/coin_app" "$PROD_HOME/bin/coin_app"
 rm -rf "$PROD_HOME/templates"
 cp -r "$REPO_DIR/templates" "$PROD_HOME/templates"
 
+rm -rf "$PROD_HOME/static"
+cp -r "$REPO_DIR/static" "$PROD_HOME/static"
+
 echo "==> 4/4 Restart prod service"
 systemctl --user restart coin-app-prod
 sleep 1

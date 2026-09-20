@@ -157,6 +157,7 @@ TEST_CASE("E2E: adding a coin creates reference and collection item", "[e2e]") {
     );
 
     REQUIRE((post.status_code == 303 || post.status_code == 200));
+    CHECK(post.header["Location"] == "/");
 
     auto coins = cpr::Get(cpr::Url{base_url + "/coins"});
     REQUIRE(coins.status_code == 200);
