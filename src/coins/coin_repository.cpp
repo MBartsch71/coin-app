@@ -133,11 +133,12 @@ namespace coins {
 
             auto coin_row = tx.exec_params(
                 "INSERT INTO coins (reference_id, year, quantity, "
-                "purchase_price, purchase_currency, dealer) "
-                "VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+                "purchase_price, purchase_currency, dealer, mint_mark, grade, storage_location_id) "
+                "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
                 ref_id, data.year, data.quantity, data.purchase_price,
-                data.purchase_currency, data.dealer
-            ).one_row();    
+                data.purchase_currency, data.dealer, 
+                data.mint_mark, data.grade, data.storage_location_id
+            ).one_row();
 
             tx.commit();
             return coin_row["id"].as<int64_t>();

@@ -156,3 +156,80 @@ TEST_CASE("CoinRepository adds a coin against an existing reference", "[coin_rep
 
     test_fixtures::clean(conn);
 }
+
+TEST_CASE("CoinRepository adds a coin with optional fields", "[coin_repository][integration]") {
+
+    auto config = config::EnvironmentLoader::load();
+    std::string conn_str = static_cast<std::string>(config);
+
+    pqxx::connection conn{conn_str};
+    test_fixtures::clean(conn);
+
+    int64_t loc_id;
+    {
+        pqxx::work tx{conn};
+        loc_id = tx.exec_params(
+            "INSERT INTO storage_locations (name) VALUES ('TEST_Vault2') "
+            "RETURNING id").one_row()["id"].as<int64_t>();
+        tx.commit();
+    }
+
+    coins::CoinRepository repo{conn_str};
+
+    // 1. With optionals set
+    coins::NewCoinData data;
+    data.ref_title = "TEST_Britannia";
+    data.ref_country = "United Kingdom";
+    data.ref_metal = "Silver";
+    data.year = 2021;
+    data.quantity = 10;
+    data.purchase_price = 32.75;
+    data.purchase_currency = "CHF";
+    data.dealer = "TEST_Shop";
+    data.mint_mark = "TESTMM21";
+    data.grade = "MS65";
+    data.storage_location_id = loc_id;
+
+    auto result = repo.add_coin(data);
+    REQUIRE(result.has_value());
+
+    auto all = repo.list_all();
+    REQUIRE(all.has_value());
+
+    auto it = std::ranges::find_if(all.value(), [](const coins::Coin& c) {
+        return c.title == "TEST_Britannia";
+    });
+    REQUIRE(it != all->end());
+    REQUIRE(it->mint_mark.has_value());
+    REQUIRE(it->mint_mark.value() == "TESTMM21");
+    REQUIRE(it->grade.has_value());
+    REQUIRE(it->grade.value() == "MS65");
+    REQUIRE(it->location.has_value());
+    REQUIRE(it->location.value() == "TEST_Vault2");
+
+    // 2. Without optionls -> stored as NULL, read back as nullopt
+    coins::NewCoinData bare;
+    bare.ref_title = "TEST_BareCoin";
+    bare.ref_country = "Nowhere";
+    bare.ref_metal = "Copper";
+    bare.year = 2000;
+    bare.quantity = 11;
+    bare.purchase_price = 1.00;
+    bare.purchase_currency = "CHF";
+    bare.dealer = "";
+
+    auto result2 = repo.add_coin(bare);
+    REQUIRE(result2.has_value());
+
+    auto all2 = repo.list_all();
+    REQUIRE(all2.has_value());
+
+    auto it2 = std::ranges::find_if(all2.value(), [](const coins::Coin& c) {
+        return c.title == "TEST_BareCoin";
+    });
+    REQUIRE(it2 != all2->end());
+    REQUIRE(!it2->mint_mark.has_value());
+    REQUIRE(!it2->grade.has_value());
+    REQUIRE(!it2->location.has_value());
+
+}

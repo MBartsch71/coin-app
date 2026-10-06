@@ -244,3 +244,52 @@ TEST_CASE("E2E: the add-coin form page and reference search fragment","[e2e]") {
     pqxx::connection conn{conn_str};
     test_fixtures::clean(conn);
 }
+
+TEST_CASE("E2E: adding a coin with optional fields stores them", "[e2e]") {
+    auto config = config::EnvironmentLoader::load();
+    const std::string base_url = "http://127.0.0.1:" + std::to_string(config.web_port);
+    const std::string conn_str = static_cast<std::string>(config);
+
+    int64_t location_id;
+    {
+        pqxx::connection conn{conn_str};
+        test_fixtures::clean(conn);
+        pqxx::work tx{conn};
+        location_id = tx.exec_params(
+            "INSERT INTO storage_locations (name) VALUES ('TEST_Vault') "
+            "RETURNING id").one_row()["id"].as<int64_t>();
+        tx.commit();
+    }
+
+    AppProcess app{COINAPP_ENV_WRAPPER, COINAPP_TEST_ENV, COINAPP_BINARY};
+    REQUIRE(wait_until_ready(base_url));
+
+    auto post = cpr::Post(
+        cpr::Url{base_url + "/coins"},
+        cpr::Payload{{"ref_title",          "TEST_Britannia"},
+                     {"ref_country",        "United Kingdom"},
+                     {"year",               "2021"},
+                     {"ref_metal",          "Silver"},
+                     {"quantity",           "10"},
+                     {"purchase_price",     "32.75"},
+                     {"purchase_currency",  "CHF"},
+                     {"dealer",             "TEST_Shop"},
+                     {"grade",              "MS65"},
+                     {"mint_mark",          "TESTMM21"},
+                     {"storage_location_id", std::to_string(location_id)}},
+        cpr::Redirect{false }
+    );
+
+    REQUIRE(post.status_code == 303);
+    CHECK(post.header["Location"] == "/");
+
+    auto coins = cpr::Get(cpr::Url{base_url + "/coins"});
+    REQUIRE(coins.status_code == 200);
+    CHECK(coins.text.find("TEST_Britannia") != std::string::npos);
+    CHECK(coins.text.find("TESTMM21")       != std::string::npos);
+    CHECK(coins.text.find("MS65")           != std::string::npos);
+    CHECK(coins.text.find("TEST_Vault")     != std::string::npos);
+
+    pqxx::connection conn{conn_str};
+    test_fixtures::clean(conn);
+}   

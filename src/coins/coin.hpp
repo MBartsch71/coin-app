@@ -40,6 +40,9 @@ namespace coins {
         double                      purchase_price;
         std::string                 purchase_currency;
         std::string                 dealer;           
+        std::optional<std::string>  mint_mark;
+        std::optional<std::string>  grade;
+        std::optional<int64_t>      storage_location_id;
     };
 }
 

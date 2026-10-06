@@ -157,8 +157,8 @@ int main() {
 
         auto parse_int = [&](const char* key) -> std::optional<int> {
             auto v = get_str(key);
-            if (!v) return std::nullopt;
-            try {return std::stoi(*v); }
+            if (!v || v->empty()) return std::nullopt;
+            try {return std::stoll(*v); }
             catch (const std::exception&) {return std::nullopt; }
         };
 
@@ -204,6 +204,9 @@ int main() {
         data.purchase_price = *price;
         data.purchase_currency = get_str("purchase_currency").value_or("CHF");
         data.dealer = get_str("dealer").value_or("");
+        data.mint_mark = get_nonempty("mint_mark");
+        data.grade = get_nonempty("grade");
+        data.storage_location_id = parse_int("storage_location_id");
         
         auto config  = config::EnvironmentLoader::load();
         coins::CoinRepository repo{static_cast<std::string>(config)};
