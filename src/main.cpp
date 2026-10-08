@@ -1,4 +1,6 @@
 #define CROW_MAIN
+
+#include "web/coin_form_parser.hpp"
 #include <crow.h>
 #include <crow/mustache.h>
 #include "config/app_config.hpp"
@@ -146,72 +148,16 @@ int main() {
     });
 
     CROW_ROUTE(app, "/coins").methods(crow::HTTPMethod::Post)([](const crow::request& req) {
-        crow::query_string form = req.get_body_params();
+        auto data = web::parse_new_coin_form(req.get_body_params());
 
-        auto get_str = [&](const char* key) -> std::optional<std::string> {
-            if (const char* v = form.get(key)) {
-                return std::string{v};
-            }
-            return std::nullopt;
-        };
-
-        auto parse_int = [&](const char* key) -> std::optional<int> {
-            auto v = get_str(key);
-            if (!v || v->empty()) return std::nullopt;
-            try {return std::stoll(*v); }
-            catch (const std::exception&) {return std::nullopt; }
-        };
-
-        auto parse_double = [&](const char* key) -> std::optional<double> {
-            auto v = get_str(key);
-            if (!v) return std::nullopt;
-            try {return std::stod(*v); }
-            catch (const std::exception&) {return std::nullopt; }
-        };
-        
-        auto get_nonempty = [&](const char* key) -> std::optional<std::string> {
-            auto v = get_str(key);
-            if (v && !v->empty()) return v;
-            return std::nullopt;
-        };
-
-        coins::NewCoinData data;
-        if (auto ref = get_str("reference_id")) {
-            if (!ref->empty()) {
-                try {
-                    data.reference_id = std::stoll(*ref);
-                } catch (const std::exception&) {
-                    return crow::response(400, "Invalid reference_id");
-                }
-            }
-        } 
-        if (!data.reference_id) {
-            data.ref_title = get_nonempty("ref_title");
-            data.ref_country = get_nonempty("ref_country");
-            data.ref_metal = get_nonempty("ref_metal");
-        } 
-
-        auto year = parse_int("year");
-        auto qty  = parse_int("quantity");
-        auto price = parse_double("purchase_price");
-        
-        if (!year || !qty || !price) {
-            return crow::response(400, "invalid or missing numeric fields");
+        if (!data) {
+            return crow::response(400, data.error());
         }
 
-        data.year = *year;
-        data.quantity = *qty;
-        data.purchase_price = *price;
-        data.purchase_currency = get_str("purchase_currency").value_or("CHF");
-        data.dealer = get_str("dealer").value_or("");
-        data.mint_mark = get_nonempty("mint_mark");
-        data.grade = get_nonempty("grade");
-        data.storage_location_id = parse_int("storage_location_id");
-        
-        auto config  = config::EnvironmentLoader::load();
+        auto config = config::EnvironmentLoader::load();
         coins::CoinRepository repo{static_cast<std::string>(config)};
 
-        auto result = repo.add_coin(data);
+        auto result = repo.add_coin(data.value());
         if (!result) {
             switch (result.error()) {
                 case coins::CoinRepositoryError::ConnectionFailed:
@@ -221,7 +167,7 @@ int main() {
                 case coins::CoinRepositoryError::InvalidData:
                     return crow::response(400, "Invalid or incomplete coin data");
             }
-        }
+        }   
 
         crow::response res{303};
         res.set_header("Location", "/");

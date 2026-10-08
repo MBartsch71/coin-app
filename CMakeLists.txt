@@ -33,6 +33,18 @@ target_include_directories(coin_lib PUBLIC src)
 target_link_libraries(coin_lib PRIVATE
     PkgConfig::PQXX
 )
+target_include_directories(coin_lib PUBLIC src)
+target_link_libraries(coin_lib PRIVATE
+    PkgConfig::PQXX
+)
+add_library(web_lib STATIC
+    src/web/coin_form_parser.cpp
+)
+
+target_include_directories(web_lib PUBLIC src)
+target_link_libraries(web_lib PRIVATE
+    Crow::Crow
+)
 
 add_executable(coin_app
     src/main.cpp
@@ -46,6 +58,7 @@ target_link_libraries(coin_app PRIVATE
     Crow::Crow
     config_lib
     coin_lib
+    web_lib
 )
 
 target_compile_features(coin_app PRIVATE cxx_std_26)
