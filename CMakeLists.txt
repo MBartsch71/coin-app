@@ -39,6 +39,7 @@ target_link_libraries(coin_lib PRIVATE
 )
 add_library(web_lib STATIC
     src/web/coin_form_parser.cpp
+    src/web/coin_handlers.cpp
 )
 
 target_include_directories(web_lib PUBLIC src)
